@@ -1,12 +1,14 @@
 // Netlify Function: perantara antara aplikasi KotaLaju dan Gemini.
 // API key TIDAK pernah dikirim ke browser; disimpan di Netlify sebagai GEMINI_API_KEY.
-// Opsional: GEMINI_MODEL untuk mengganti model (bawaan: gemini-2.5-flash).
+// Opsional: GEMINI_MODEL untuk memaksa model tertentu.
 //
-// Permintaan (POST JSON):
+// POST JSON:
 //   { "messages": [{ "role": "user" | "model", "text": "..." }, ...],
 //     "konteks": "teks soal (opsional)", "sudahDijawab": false }
 //   Kompatibel lama: { "pertanyaan": "..." }
-// Jawaban: { "jawaban": "..." } atau { "error": "..." }
+// Jawaban: { "jawaban": "...", "model": "..." } atau { "error": "...", "detail": "..." }
+//
+// GET /api/tanya?cek=1 → daftar model Gemini Flash yang tersedia (tanpa memakai kuota jawaban).
 
 const SYSTEM_PROMPT = `Kamu adalah "Pak Lampu", tutor matematika yang ramah, sabar, dan seru di aplikasi KotaLaju (permainan sepeda keliling kota) untuk siswa SMP kelas VII di Indonesia.
 
@@ -27,6 +29,8 @@ Batasan:
 - Bila pertanyaan tidak berhubungan dengan belajar atau tidak pantas, tolak dengan sopan dan ajak kembali belajar.
 - Jangan meminta, menyimpan, atau membahas data pribadi.`;
 
+const API = 'https://generativelanguage.googleapis.com/v1beta';
+
 const json = (status, body) =>
   new Response(JSON.stringify(body), {
     status,
@@ -35,26 +39,32 @@ const json = (status, body) =>
 
 const clip = (s, n) => String(s ?? '').trim().slice(0, n);
 
-const API = 'https://generativelanguage.googleapis.com/v1beta';
-
 // Model yang terakhir berhasil (bertahan selama fungsi masih "hangat").
 let cachedModel = null;
 
-async function callGemini(key, model, payload) {
-  const res = await fetch(`${API}/models/${encodeURIComponent(model)}:generateContent`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json().catch(() => ({}));
-  return { res, data };
+async function callGemini(key, model, payload, timeoutMs) {
+  try {
+    const res = await fetch(`${API}/models/${encodeURIComponent(model)}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { status: res.status, ok: res.ok, data };
+  } catch (e) {
+    return { status: 0, ok: false, data: { error: { message: String(e?.name === 'TimeoutError' ? 'timeout' : e?.message ?? e) } } };
+  }
 }
 
-/** Mencari model Gemini "Flash" terbaru yang bisa generateContent untuk API key ini. */
-async function findFlashModel(key) {
+/** Daftar model Gemini "Flash" yang bisa generateContent, terbaik lebih dulu. */
+async function listFlashModels(key) {
   try {
-    const res = await fetch(`${API}/models?pageSize=200`, { headers: { 'x-goog-api-key': key } });
-    if (!res.ok) return null;
+    const res = await fetch(`${API}/models?pageSize=200`, {
+      headers: { 'x-goog-api-key': key },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return { models: [], error: `${res.status} ${(await res.text()).slice(0, 200)}` };
     const data = await res.json();
     const skip = /(image|tts|audio|live|embedding|vision|thinking|exp|learnlm|robotics|computer)/i;
     const version = (n) => parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || '0');
@@ -62,23 +72,28 @@ async function findFlashModel(key) {
       .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
       .map((m) => String(m.name || '').replace(/^models\//, ''))
       .filter((n) => n.startsWith('gemini') && n.includes('flash') && !skip.test(n));
-    usable.sort((a, b) => {
-      const score = (n) =>
-        version(n) * 10 - (n.includes('preview') ? 3 : 0) - (n.includes('lite') ? 2 : 0) + (n.endsWith('latest') ? 1 : 0);
-      return score(b) - score(a);
-    });
-    console.log('Model Flash tersedia:', usable.slice(0, 5).join(', '));
-    return usable[0] || null;
+    const score = (n) =>
+      version(n) * 10 - (n.includes('preview') ? 3 : 0) - (n.includes('lite') ? 2 : 0) + (n.endsWith('latest') ? 1 : 0);
+    usable.sort((a, b) => score(b) - score(a));
+    return { models: usable };
   } catch (e) {
-    console.error('Gagal membaca daftar model', e);
-    return null;
+    return { models: [], error: String(e?.message ?? e) };
   }
 }
 
-export default async (req) => {
-  if (req.method !== 'POST') return json(405, { error: 'Gunakan POST.' });
+const describe = (r) =>
+  `${r.status || 'jaringan'} ${r.data?.error?.status ?? ''} ${String(r.data?.error?.message ?? '').slice(0, 220)}`.trim();
 
+export default async (req) => {
   const key = process.env.GEMINI_API_KEY;
+  const url = new URL(req.url);
+
+  if (req.method === 'GET' && url.searchParams.get('cek')) {
+    if (!key) return json(500, { error: 'GEMINI_API_KEY belum diatur di Netlify.' });
+    const { models, error } = await listFlashModels(key);
+    return json(200, { keyAda: true, modelPaksa: process.env.GEMINI_MODEL || null, cachedModel, tersedia: models.slice(0, 12), error });
+  }
+  if (req.method !== 'POST') return json(405, { error: 'Gunakan POST.' });
   if (!key) return json(500, { error: 'GEMINI_API_KEY belum diatur di Netlify.' });
 
   let body;
@@ -112,55 +127,76 @@ export default async (req) => {
   const payload = {
     systemInstruction: { parts: [{ text: system }] },
     contents: messages,
-    // Model terbaru "berpikir" dulu dan itu ikut memakai jatah token, jadi jatahnya dibuat longgar.
-    // Panjang jawaban tetap dijaga oleh instruksi di SYSTEM_PROMPT.
+    // Jatah token longgar karena model terbaru "berpikir" dulu; panjang jawaban dijaga oleh SYSTEM_PROMPT.
     generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
   };
 
-  try {
-    // Coba model pilihan; bila tidak ada (404), cari otomatis model Flash yang tersedia.
-    const candidates = [...new Set([process.env.GEMINI_MODEL, cachedModel, 'gemini-flash-latest', 'gemini-2.5-flash'].filter(Boolean))];
-    let model = candidates[0];
-    let { res, data } = await callGemini(key, model, payload);
-    for (const next of candidates.slice(1)) {
-      if (res.status !== 404) break;
-      model = next;
-      ({ res, data } = await callGemini(key, model, payload));
+  // Urutan percobaan: model paksa → model yang terakhir berhasil → daftar model Flash dari Google → cadangan.
+  const tried = [];
+  const queue = [process.env.GEMINI_MODEL, cachedModel].filter(Boolean);
+  let listed = false;
+  let last = null;
+  // Fungsi Netlify dihentikan sekitar 10 detik; sisakan ruang untuk membalas.
+  const deadline = Date.now() + 9200;
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const remaining = deadline - Date.now();
+    if (remaining < 1500) break;
+    if (!queue.length && !listed) {
+      listed = true;
+      const { models } = await listFlashModels(key);
+      queue.push(...models.slice(0, 4), 'gemini-flash-latest', 'gemini-2.5-flash');
     }
-    if (res.status === 404) {
-      const found = await findFlashModel(key);
-      if (found) {
-        model = found;
-        ({ res, data } = await callGemini(key, model, payload));
+    const model = queue.shift();
+    if (!model) break;
+    if (tried.includes(model)) {
+      attempt--;
+      continue;
+    }
+    tried.push(model);
+    const r = await callGemini(key, model, payload, Math.max(1000, deadline - Date.now()));
+    last = { model, ...r };
+
+    if (r.ok) {
+      const jawaban = (r.data?.candidates?.[0]?.content?.parts ?? [])
+        .filter((p) => !p.thought)
+        .map((p) => p.text ?? '')
+        .join('')
+        .trim();
+      if (jawaban) {
+        cachedModel = model;
+        return json(200, { jawaban, model });
       }
+      const alasan = r.data?.candidates?.[0]?.finishReason || r.data?.promptFeedback?.blockReason || 'kosong';
+      if (alasan === 'SAFETY' || r.data?.promptFeedback?.blockReason) {
+        return json(200, {
+          jawaban: 'Maaf, Pak Lampu tidak bisa membahas itu. Yuk, tanya tentang jarak, kecepatan, atau waktu! 🚲',
+          model,
+        });
+      }
+      last.data = { error: { message: `jawaban kosong (${alasan})` } };
+      continue; // coba model lain
     }
-    if (res.ok) cachedModel = model;
-    if (!res.ok) {
-      console.error('Gemini error', res.status, JSON.stringify(data).slice(0, 800));
-      if (res.status === 429) return json(429, { error: 'Kuota AI sedang habis. Coba lagi beberapa saat lagi, ya.' });
-      const detail = String(data?.error?.message ?? '');
-      if (res.status === 403 || /api key/i.test(detail))
-        return json(502, { error: 'API key Gemini ditolak. Periksa GEMINI_API_KEY di Netlify.' });
-      if (res.status === 400)
-        return json(502, { error: `Permintaan ke AI ditolak (model ${model}). ${detail.slice(0, 160)}` });
-      if (res.status === 404)
-        return json(502, { error: `Model "${model}" tidak ditemukan. Atur GEMINI_MODEL di Netlify.` });
-      return json(502, { error: 'AI sedang tidak bisa dihubungi. Coba lagi sebentar lagi.' });
+
+    if (r.status === 429) {
+      return json(429, { error: 'Kuota AI sedang habis. Coba lagi beberapa saat lagi, ya.', detail: describe(r), model });
     }
-    const jawaban = (data?.candidates?.[0]?.content?.parts ?? [])
-      .map((p) => p.text ?? '')
-      .join('')
-      .trim();
-    if (!jawaban) {
-      const alasan = data?.candidates?.[0]?.finishReason || data?.promptFeedback?.blockReason;
-      console.error('Jawaban kosong', alasan);
-      return json(502, { error: 'Pak Lampu tidak bisa menjawab itu. Coba tanya hal lain tentang jarak, kecepatan, atau waktu.' });
+    const msg = String(r.data?.error?.message ?? '');
+    if (r.status === 403 || /api key/i.test(msg)) {
+      return json(502, { error: 'API key Gemini ditolak. Periksa GEMINI_API_KEY di Netlify.', detail: describe(r), model });
     }
-    return json(200, { jawaban });
-  } catch (e) {
-    console.error('Fetch gagal', e);
-    return json(502, { error: 'AI sedang tidak bisa dihubungi. Coba lagi sebentar lagi.' });
+    // 404 (model tidak ada), 5xx (sibuk/galat), timeout, atau 400 khusus model → coba model berikutnya.
+    console.error('Gemini gagal', model, describe(r));
   }
+
+  const timedOut = last && last.status === 0 && /timeout/.test(String(last.data?.error?.message));
+  return json(502, {
+    error: timedOut
+      ? 'AI terlalu lama menjawab. Coba pertanyaan yang lebih singkat, atau coba lagi.'
+      : 'AI sedang tidak bisa dihubungi. Coba lagi sebentar lagi.',
+    detail: last ? `${last.model}: ${describe(last)}` : 'tidak ada model yang bisa dicoba',
+    dicoba: tried,
+  });
 };
 
 export const config = { path: '/api/tanya' };
