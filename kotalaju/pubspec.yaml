@@ -1,0 +1,22 @@
+name: kotalaju
+description: "KotaLaju - aplikasi belajar Jarak, Kecepatan, dan Waktu untuk siswa SMP kelas VII."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_preferences: ^2.3.2
+  path_provider: ^2.1.4
+  crypto: ^3.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

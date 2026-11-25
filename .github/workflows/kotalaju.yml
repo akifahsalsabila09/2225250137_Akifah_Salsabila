@@ -1,0 +1,80 @@
+# Build & publikasi KotaLaju setiap ada push ke branch main.
+# Hasil:
+#   - Aplikasi web (bisa di-install di HP sebagai aplikasi/PWA):
+#       https://<user>.github.io/<repo>/
+#   - File APK Android:
+#       https://<user>.github.io/<repo>/kotalaju.apk
+# Sekali saja: Settings → Pages → Build and deployment → Source = "GitHub Actions".
+name: Build & Publikasi KotaLaju
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kotalaju
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.50.0
+          cache: true
+
+      - name: Pasang dependensi
+        run: flutter pub get
+
+      - name: Analyzer
+        run: dart analyze lib test
+
+      - name: Test
+        run: flutter test
+
+      - name: Build web
+        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Taruh APK di situs web
+        run: cp build/app/outputs/flutter-apk/app-release.apk build/web/kotalaju.apk
+
+      - name: Simpan APK sebagai artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotalaju-apk
+          path: kotalaju/build/app/outputs/flutter-apk/app-release.apk
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: kotalaju/build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
