@@ -5,7 +5,7 @@ import '../../app/theme.dart';
 import '../../core/data/app_state.dart';
 import '../../core/domain/drills.dart';
 import '../../core/domain/problem.dart';
-import '../../core/domain/problem_bank.dart';
+import '../../core/domain/soal_tetap.dart';
 import '../../core/widgets/common.dart';
 import '../garage/radar_chart.dart';
 import '../problem/problem_session.dart';
@@ -13,21 +13,9 @@ import '../problem/series.dart';
 
 enum TestKind { pretest, posttest }
 
-/// Soal tes paralel: templat sama, seed berbeda (api.md §3.4).
-const _testTemplates = <Indicator, String>{
-  Indicator.reasoning: 'pilih_rute',
-  Indicator.formulating: 'waktu_tempuh',
-  Indicator.employing: 'dua_tahap',
-  Indicator.interpreting: 'periksa_hitungan',
-};
-
-List<Problem> testProblems(TestKind kind) {
-  final base = kind == TestKind.pretest ? 1000 : 2000;
-  var k = 0;
-  return [
-    for (final e in _testTemplates.entries) ProblemBank.generate(e.value, level: 2, seed: base + (k++) * 2 + 2),
-  ];
-}
+/// Tes Awal dan Ujian Kota memakai 4 soal kisi-kisi yang sama persis
+/// (satu per indikator Mathematical Literacy, skor maksimal 24).
+List<Problem> testProblems(TestKind kind) => soalKisiKisi();
 
 class TestScreen extends StatelessWidget {
   final TestKind kind;
@@ -63,7 +51,7 @@ class TestScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (isPre) const _Bullet('6 soal singkat tentang jam dan pecahan'),
-                const _Bullet('4 soal cerita (skor maksimal 24)'),
+                const _Bullet('4 soal cerita dari kisi-kisi (skor maksimal 24)'),
                 const _Bullet('Tanpa petunjuk dan tanpa kalkulator satuan'),
                 const _Bullet('Tidak ada batas waktu. Kerjakan dengan tenang.'),
                 const _Bullet('Nilainya tidak mengurangi koinmu.'),

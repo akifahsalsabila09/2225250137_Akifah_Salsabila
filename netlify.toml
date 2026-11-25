@@ -1,0 +1,10 @@
+# Pengaturan Netlify untuk KotaLaju.
+# Situs web sudah di-build (Flutter) dan disimpan di folder "site".
+# Netlify hanya menerbitkan folder itu + menjalankan fungsi Tanya AI.
+
+[build]
+  publish = "site"
+  command = "echo 'Situs sudah di-build, tidak ada langkah build.'"
+
+[functions]
+  directory = "netlify/functions"

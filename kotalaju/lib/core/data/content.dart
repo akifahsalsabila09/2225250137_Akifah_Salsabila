@@ -1,5 +1,7 @@
 /// Isi distrik (materi). Urutan segmen mengikuti design.md §2.1:
-/// animasi → contoh terselesaikan → contoh setengah jadi → latihan → checkpoint.
+/// animasi → contoh terselesaikan → contoh setengah jadi → checkpoint.
+///
+/// Semua soal cerita diambil dari paket 7 soal tetap (lib/core/domain/soal_tetap.dart).
 library;
 
 sealed class Segment {
@@ -17,33 +19,29 @@ class TriangleSegment extends Segment {
   const TriangleSegment(super.title);
 }
 
+/// Contoh terselesaikan memakai satu soal tetap.
 class WorkedSegment extends Segment {
-  final String templateId;
-  final int level;
-  final int seed;
-  const WorkedSegment(super.title, this.templateId, this.level, {this.seed = 7});
+  final int soal;
+  const WorkedSegment(super.title, this.soal);
 }
 
+/// Contoh setengah jadi: langkah ① dan ② sudah diisi.
 class CompletionSegment extends Segment {
-  final String templateId;
-  final int level;
-  final int seed;
-  const CompletionSegment(super.title, this.templateId, this.level, {this.seed = 11});
+  final int soal;
+  const CompletionSegment(super.title, this.soal);
 }
 
+/// Latihan dengan petunjuk dan boleh mencoba lagi.
 class PracticeSegment extends Segment {
-  final List<String> templateIds;
-  final int count;
-  final int level;
-  const PracticeSegment(super.title, this.templateIds, this.count, this.level);
+  final List<int> soal;
+  const PracticeSegment(super.title, this.soal);
 }
 
+/// Checkpoint: satu kali jawab per langkah; lulus bila [passMin] soal mendapat ≥ 66%.
 class CheckpointSegment extends Segment {
-  final List<String> templateIds;
-  final int count;
+  final List<int> soal;
   final int passMin;
-  final int level;
-  const CheckpointSegment(super.title, this.templateIds, this.count, this.passMin, this.level);
+  const CheckpointSegment(super.title, this.soal, this.passMin);
 }
 
 class DrillSegment extends Segment {
@@ -76,7 +74,9 @@ class District {
   final List<Segment> segments;
   final List<String> summary;
   final List<String> unlocksGames;
-  final List<String> quizTemplates;
+
+  /// Nomor soal tetap yang dibahas di distrik ini.
+  final List<int> soal;
 
   const District({
     required this.id,
@@ -88,7 +88,7 @@ class District {
     required this.segments,
     required this.summary,
     required this.unlocksGames,
-    required this.quizTemplates,
+    required this.soal,
   });
 }
 
@@ -108,7 +108,7 @@ const districts = <District>[
     ],
     summary: ['1 jam = 60 menit', '15 menit = ¼ jam = 0,25 jam', '30 menit = ½ jam = 0,5 jam', '45 menit = ¾ jam = 0,75 jam'],
     unlocksGames: [],
-    quizTemplates: [],
+    soal: [],
   ),
   District(
     id: 'bundaran_jkw',
@@ -121,14 +121,13 @@ const districts = <District>[
       AnimSegment('Mobil dan Tiang Jam', 'markers',
           'Mobil melaju 60 km/jam. Artinya, setiap 1 jam mobil menempuh 60 km. Perhatikan tiang di jalan.'),
       TriangleSegment('Segitiga JKW'),
-      WorkedSegment('Contoh: Mencari Waktu', 'waktu_tempuh', 1),
-      CompletionSegment('Lengkapi: Mencari Kecepatan', 'kecepatan', 1),
-      PracticeSegment('Latihan JKW', ['waktu_tempuh', 'jarak', 'kecepatan'], 3, 1),
-      CheckpointSegment('Checkpoint JKW', ['waktu_tempuh', 'kecepatan', 'jarak'], 3, 2, 1),
+      WorkedSegment('Contoh: Waktu Tempuh Truk (Soal 7)', 7),
+      CompletionSegment('Lengkapi: Perjalanan ke Museum (Soal 2)', 2),
+      CheckpointSegment('Checkpoint JKW (Soal 2 & 7)', [2, 7], 2),
     ],
     summary: ['J = K × W', 'K = J ÷ W', 'W = J ÷ K', 'Kecepatan besar → waktu singkat'],
     unlocksGames: ['courier_route'],
-    quizTemplates: ['waktu_tempuh', 'kecepatan', 'jarak', 'pilih_rute'],
+    soal: [2, 7],
   ),
   District(
     id: 'bengkel_satuan',
@@ -143,13 +142,13 @@ const districts = <District>[
       AnimSegment('km/jam → m/detik', 'kmh2ms', 'Kita ubah 72 km/jam menjadi m/detik. Tiga langkah, satu per satu. Tidak perlu terburu-buru.'),
       CalculatorSegment('Kalkulator Satuan'),
       DrillSegment('Latihan Konversi', 6, 2),
-      WorkedSegment('Contoh: Waktu dalam Menit', 'kecepatan', 2),
-      PracticeSegment('Latihan Satuan Campur', ['kecepatan', 'jarak'], 3, 2),
-      CheckpointSegment('Checkpoint Bengkel', ['kecepatan', 'jarak', 'kecepatan'], 3, 2, 2),
+      WorkedSegment('Contoh: Kecepatan Sepeda Rani (Soal 5)', 5),
+      CompletionSegment('Lengkapi: Jarak Perjalanan Ayah (Soal 6)', 6),
+      CheckpointSegment('Checkpoint Bengkel (Soal 5 & 6)', [5, 6], 2),
     ],
     summary: ['Besar → kecil: dikali', 'Kecil → besar: dibagi', '1 jam = 60 menit = 3.600 detik', '1 km = 1.000 m'],
     unlocksGames: ['unit_rally'],
-    quizTemplates: ['kecepatan', 'jarak', 'periksa_hitungan', 'tepat_waktu'],
+    soal: [5, 6],
   ),
   District(
     id: 'jalan_cerita',
@@ -160,51 +159,36 @@ const districts = <District>[
     interviewRefs: ['K03', 'EL01', 'EL02', 'EL03', 'EL05', 'GL03', 'GL04'],
     segments: [
       ReadingToolsSegment('Penanda Info & Kamus Jalan'),
-      WorkedSegment('Contoh: Coret Info Tak Perlu', 'waktu_tempuh', 3),
-      PracticeSegment('Latihan Membaca Soal', ['waktu_tempuh', 'tepat_waktu', 'periksa_hitungan'], 3, 2),
-      CheckpointSegment('Checkpoint Cerita', ['tepat_waktu', 'periksa_hitungan', 'waktu_tempuh'], 3, 2, 2),
+      WorkedSegment('Contoh: Memeriksa Hitungan Budi (Soal 4)', 4),
+      CompletionSegment('Lengkapi: Memilih Rute Bersepeda (Soal 1)', 1),
+      CheckpointSegment('Checkpoint Cerita (Soal 1 & 4)', [1, 4], 2),
     ],
-    summary: ['Tandai angka: jarak, kecepatan, lama, jam', '"Pukul" = jam, bukan lama', 'Coret info yang tidak dipakai', 'Tulis Diketahui–Ditanya'],
+    summary: ['Tandai angka: jarak, kecepatan, lama', 'Tulis Diketahui–Ditanya', 'Bandingkan dalam satuan yang sama', 'Periksa: apakah hasilnya masuk akal?'],
     unlocksGames: ['traffic_detective'],
-    quizTemplates: ['tepat_waktu', 'periksa_hitungan', 'waktu_tempuh', 'pilih_rute'],
+    soal: [1, 4],
   ),
   District(
-    id: 'simpang_berpapasan',
-    name: 'Simpang Berpapasan',
-    icon: '🚦',
-    tagline: 'Dua kendaraan saling mendekat',
+    id: 'halte_transit',
+    name: 'Halte Transit',
+    icon: '🚏',
+    tagline: 'Perjalanan dua tahap',
     prerequisites: ['jalan_cerita'],
-    interviewRefs: ['IL04', 'DS01', 'GL03'],
+    interviewRefs: ['IL02', 'GL02', 'GL05'],
     segments: [
-      AnimSegment('Pita Jarak', 'headon',
-          'Mobil A dan bus B saling mendekat. Lihat pita biru di antara mereka. Berapa km pita itu menyusut setiap jam?'),
-      WorkedSegment('Contoh: Berpapasan', 'berpapasan', 1),
-      CompletionSegment('Lengkapi: Berpapasan', 'berpapasan', 2),
-      PracticeSegment('Latihan Berpapasan', ['berpapasan'], 3, 2),
-      CheckpointSegment('Checkpoint Simpang', ['berpapasan', 'berpapasan', 'dua_tahap'], 3, 2, 2),
+      AnimSegment('Mobil dan Tiang Jam', 'markers',
+          'Ingat lagi: tiap jam, kendaraan menempuh sejauh kecepatannya. Kalau kecepatannya berubah, hitung tiap bagian sendiri-sendiri.'),
+      CompletionSegment('Lengkapi: Perjalanan Bersepeda Andi (Soal 3)', 3),
+      PracticeSegment('Latihan Ulang Semua Soal', [7, 5, 6, 2, 1, 4]),
+      CheckpointSegment('Checkpoint Halte (Soal 3)', [3], 1),
     ],
-    summary: ['Berlawanan arah: kecepatan dijumlah', 'Waktu = jarak ÷ (vA + vB)', 'Jam bertemu = jam berangkat + waktu'],
-    unlocksGames: ['meeting_point'],
-    quizTemplates: ['berpapasan', 'dua_tahap'],
-  ),
-  District(
-    id: 'jalur_susul',
-    name: 'Jalur Susul',
-    icon: '🏁',
-    tagline: 'Mengejar dari belakang',
-    prerequisites: ['jalan_cerita'],
-    interviewRefs: ['IL04', 'IL05'],
-    segments: [
-      AnimSegment('Siapa Duluan?', 'catchup',
-          'Bus berangkat lebih dulu. Motor menyusul 30 menit kemudian. Lihat seberapa jauh bus sudah di depan.'),
-      WorkedSegment('Contoh: Menyusul', 'menyusul', 1),
-      CompletionSegment('Lengkapi: Menyusul', 'menyusul', 2),
-      PracticeSegment('Latihan Menyusul', ['menyusul'], 3, 2),
-      CheckpointSegment('Checkpoint Susul', ['menyusul', 'menyusul', 'tepat_waktu'], 3, 2, 2),
+    summary: [
+      'Hitung waktu tiap bagian: jarak ÷ kecepatan',
+      'Total waktu = jumlah semua waktu',
+      'Kecepatan rata-rata = total jarak ÷ total waktu',
+      'Bukan rata-rata dari dua kecepatan!',
     ],
-    summary: ['Searah: kecepatan dikurang', 'Jarak awal = v yang duluan × selisih waktu', 'Waktu = jarak awal ÷ (vB − vA)'],
-    unlocksGames: ['catch_bus'],
-    quizTemplates: ['menyusul', 'tepat_waktu'],
+    unlocksGames: ['meeting_point', 'catch_bus'],
+    soal: [3],
   ),
 ];
 
@@ -221,8 +205,8 @@ class GameInfo {
 
 const games = <GameInfo>[
   GameInfo('unit_rally', 'Rally Satuan', '🏎️', 'Pilih gerbang konversi yang benar!', 'bengkel_satuan'),
-  GameInfo('meeting_point', 'Tebak Titik Temu', '🚩', 'Tancapkan bendera di tempat mereka bertemu.', 'simpang_berpapasan'),
-  GameInfo('catch_bus', 'Kejar Bus Terakhir', '🚌', 'Atur kecepatan motor untuk menyusul bus.', 'jalur_susul'),
+  GameInfo('meeting_point', 'Tebak Titik Temu', '🚩', 'Tancapkan bendera di tempat mereka bertemu.', 'halte_transit'),
+  GameInfo('catch_bus', 'Kejar Bus Terakhir', '🚌', 'Atur kecepatan motor untuk menyusul bus.', 'halte_transit'),
   GameInfo('courier_route', 'Pilih Rute Kurir', '📦', 'Antar paket tepat waktu!', 'bundaran_jkw'),
   GameInfo('traffic_detective', 'Detektif Lalu Lintas', '🔍', 'Temukan langkah yang salah.', 'jalan_cerita'),
 ];

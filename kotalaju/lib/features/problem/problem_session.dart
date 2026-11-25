@@ -8,7 +8,6 @@ import '../../core/data/models.dart';
 import '../../core/domain/clock.dart';
 import '../../core/domain/format.dart';
 import '../../core/domain/problem.dart';
-import '../../core/domain/problem_bank.dart';
 import '../../core/domain/scorer.dart';
 import '../../core/domain/units.dart';
 import '../../core/widgets/common.dart';
@@ -375,20 +374,20 @@ class _ProblemSessionViewState extends State<ProblemSessionView> {
     );
   }
 
+  /// Petunjuk tingkat 4: pembahasan langkah demi langkah soal ini.
   Widget _workedSister() {
-    final sis = ProblemBank.generate(p.templateId, level: p.level, seed: p.seed + 1);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Contoh soal sejenis dengan angka berbeda:', style: TextStyle(fontWeight: FontWeight.w800)),
+        const Text('Pembahasan langkah demi langkah:', style: TextStyle(fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
-        StoryView(story: sis.story, revealTruth: true),
-        const Divider(),
-        for (var i = 0; i < sis.solution.length; i++)
+        for (var i = 0; i < p.solution.length; i++)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Text('${i + 1}. ${sis.solution[i]}', style: const TextStyle(fontSize: 15)),
+            child: Text('${i + 1}. ${p.solution[i]}', style: const TextStyle(fontSize: 15)),
           ),
+        const SizedBox(height: 6),
+        const Text('Coba ikuti langkahnya, lalu isi jawabanmu sendiri.', style: TextStyle(fontStyle: FontStyle.italic)),
       ],
     );
   }

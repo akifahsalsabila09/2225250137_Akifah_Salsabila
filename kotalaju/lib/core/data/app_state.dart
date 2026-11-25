@@ -59,6 +59,14 @@ class AppState extends ChangeNotifier {
   String? teacherPinHash;
   List<Map<String, dynamic>> events = [];
 
+  /// Karakter pesepeda yang dipilih (indeks ke riderSkins).
+  int riderSkin = 0;
+
+  void setRiderSkin(int i) {
+    riderSkin = i;
+    _changed();
+  }
+
   Future<void> load() async {
     _prefs = await SharedPreferences.getInstance();
     final raw = _prefs!.getString(_key);
@@ -112,8 +120,7 @@ class AppState extends ChangeNotifier {
 
   bool get recommendMenaraJam => prereqScore == null || prereqScore! < 4;
 
-  bool get postTestOpen =>
-      doneDistricts.contains('simpang_berpapasan') && doneDistricts.contains('jalur_susul');
+  bool get postTestOpen => doneDistricts.contains('halte_transit');
 
   void markSegment(String districtId, int index) {
     final s = segmentsDone.putIfAbsent(districtId, () => {});
@@ -321,6 +328,7 @@ class AppState extends ChangeNotifier {
         'economyMode': economyMode,
         'teacherPinHash': teacherPinHash,
         'events': events,
+        'riderSkin': riderSkin,
       };
 
   void _fromJson(Map<String, dynamic> j) {
@@ -346,6 +354,7 @@ class AppState extends ChangeNotifier {
     economyMode = j['economyMode'] as bool? ?? false;
     teacherPinHash = j['teacherPinHash'] as String?;
     events = [for (final e in ((j['events'] as List?) ?? [])) (e as Map).cast<String, dynamic>()];
+    riderSkin = (j['riderSkin'] as num?)?.toInt() ?? 0;
   }
 }
 

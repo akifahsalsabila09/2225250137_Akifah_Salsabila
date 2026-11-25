@@ -76,8 +76,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const Text('Selamat datang di KotaLaju!', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
           const SizedBox(height: 10),
           const Text(
-            'Kamu adalah pengemudi baru di kota ini. Jelajahi distrik, pelajari jarak, kecepatan, dan waktu, '
-            'lalu kumpulkan SIM dan kendaraan baru!',
+            'Ada 7 soal tentang jarak, kecepatan, dan waktu. '
+            'Kerjakan langkah demi langkah. Kalau bingung, buka petunjuknya!',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 17),
           ),
@@ -109,15 +109,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 8),
-        Row(children: [
-          const Text('Kelas:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-          const SizedBox(width: 12),
-          for (final g in [7, 8, 9])
-            Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: ChoiceChip(label: Text('$g'), selected: _grade == g, onSelected: (_) => setState(() => _grade = g)),
-            ),
-        ]),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const Text('Kelas:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            for (final g in [7, 8, 9])
+              ChoiceChip(label: Text('$g'), selected: _grade == g, onSelected: (_) => setState(() => _grade = g)),
+          ],
+        ),
         const SizedBox(height: 10),
         TextField(
           controller: _classCode,

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app/theme.dart';
 import 'core/data/app_state.dart';
-import 'features/home/home_shell.dart';
-import 'features/onboarding/onboarding_screen.dart';
+import 'features/ride/ride_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,18 +23,9 @@ class KotaLajuApp extends StatelessWidget {
         title: 'KotaLaju',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
-        home: const RootGate(),
+        // Aplikasi hanya berisi permainan sepeda dengan 7 koin soal.
+        home: const RideScreen(),
       ),
     );
-  }
-}
-
-class RootGate extends StatelessWidget {
-  const RootGate({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final s = AppScope.of(context);
-    return s.profile == null ? const OnboardingScreen() : const HomeShell();
   }
 }

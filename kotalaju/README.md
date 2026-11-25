@@ -46,7 +46,32 @@ APK hasil build ada di `build/app/outputs/flutter-apk/`.
 | Mode gelap | Belum | Tahap berikutnya |
 | Sinkronisasi server (v1.1) | Belum (sesuai rencana) | Lihat api.md §4 |
 
-## Bank Soal
+## Paket 7 Soal (dipakai di seluruh aplikasi)
+
+Didefinisikan di `lib/core/domain/soal_tetap.dart`. Latihan materi, checkpoint, kuis, Tes Awal, dan Ujian Kota hanya memakai soal-soal ini.
+
+| No | Soal | Indikator | Sumber | Jawaban |
+|---|---|---|---|---|
+| 1 | Memilih Rute Bersepeda (Dina, 6 km, 12 vs 15 km/jam, batas 25 menit) | Reasoning | Kisi-kisi | Rute B (24 menit) |
+| 2 | Perjalanan Menuju Museum (150 km, 50 km/jam) | Formulating | Kisi-kisi | 3 jam |
+| 3 | Perjalanan Bersepeda Andi (4 km @ 8 + 6 km @ 12 km/jam) | Employing | Kisi-kisi | 1 jam; 10 km/jam |
+| 4 | Memeriksa Waktu Perjalanan Bus (Budi, 120 km, 40 km/jam) | Interpreting | Kisi-kisi | 3 jam, bukan 20 menit |
+| 5 | Kecepatan Sepeda Rani (6 km dalam 30 menit) | Employing | Tambahan | 12 km/jam |
+| 6 | Jarak Perjalanan Ayah (60 km/jam selama 90 menit) | Employing | Tambahan | 90 km |
+| 7 | Waktu Tempuh Truk Sayur (90 km, 60 km/jam) | Formulating | Tambahan | 1,5 jam |
+
+**Tes Awal dan Ujian Kota** memakai soal 1–4 (skor maksimal 24). Angka dan konteks soal kisi-kisi sama persis. Kalimatnya dipecah menjadi kalimat pendek (≤ 15 kata) sesuai prinsip Cognitive Load.
+
+| Distrik | Soal |
+|---|---|
+| Bundaran JKW | 7 (contoh), 2 (setengah jadi), checkpoint 2 & 7 |
+| Bengkel Satuan | 5 (contoh), 6 (setengah jadi), checkpoint 5 & 6 |
+| Jalan Raya Cerita | 4 (contoh), 1 (setengah jadi), checkpoint 1 & 4 |
+| Halte Transit | 3 (setengah jadi), latihan ulang semua soal, checkpoint 3 |
+
+Distrik Simpang Berpapasan dan Jalur Susul diganti Halte Transit karena tidak ada soal berpapasan/menyusul di paket ini. Animasinya masih ada di kode (`animations.dart`) bila nanti dibutuhkan.
+
+## Pembangkit Soal (cadangan)
 
 | Templat | Indikator ML | Kesalahan yang didiagnosis |
 |---|---|---|

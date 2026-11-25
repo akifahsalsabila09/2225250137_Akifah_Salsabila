@@ -8,7 +8,7 @@ import '../../core/data/app_state.dart';
 import '../../core/data/content.dart';
 import '../../core/domain/drills.dart';
 import '../../core/domain/problem.dart';
-import '../../core/domain/problem_bank.dart';
+import '../../core/domain/soal_tetap.dart';
 import '../../core/widgets/common.dart';
 import '../../core/widgets/jkw_triangle.dart';
 import '../../core/widgets/story_view.dart';
@@ -140,30 +140,21 @@ class DistrictScreen extends StatelessWidget {
       case TriangleSegment():
         completed = await nav.push<bool>(MaterialPageRoute(builder: (_) => const TriangleScreen())) ?? false;
       case WorkedSegment():
-        final p = ProblemBank.generate(seg.templateId, level: seg.level, seed: seg.seed);
-        completed = await nav.push<bool>(MaterialPageRoute(builder: (_) => WorkedExampleScreen(problem: p))) ?? false;
+        completed =
+            await nav.push<bool>(MaterialPageRoute(builder: (_) => WorkedExampleScreen(problem: soal(seg.soal)))) ?? false;
       case CompletionSegment():
-        final p = ProblemBank.generate(seg.templateId, level: seg.level, seed: seg.seed);
         final res = await ProblemSeriesScreen.open(context,
-            title: seg.title, problems: [p], mode: SessionMode.completion, recordContext: 'completion');
+            title: seg.title, problems: [soal(seg.soal)], mode: SessionMode.completion, recordContext: 'completion');
         completed = (res?.length ?? 0) == 1;
       case PracticeSegment():
-        final ps = [
-          for (var k = 0; k < seg.count; k++)
-            ProblemBank.generate(seg.templateIds[k % seg.templateIds.length], level: seg.level, seed: rnd.nextInt(1 << 30)),
-        ];
         final res = await ProblemSeriesScreen.open(context,
-            title: seg.title, problems: ps, mode: SessionMode.practice, recordContext: 'practice');
-        completed = (res?.length ?? 0) == seg.count;
+            title: seg.title, problems: soalNomor(seg.soal), mode: SessionMode.practice, recordContext: 'practice');
+        completed = (res?.length ?? 0) == seg.soal.length;
       case CheckpointSegment():
         isCheckpoint = true;
-        final ps = [
-          for (var k = 0; k < seg.count; k++)
-            ProblemBank.generate(seg.templateIds[k % seg.templateIds.length], level: seg.level, seed: rnd.nextInt(1 << 30)),
-        ];
         final res = await ProblemSeriesScreen.open(context,
-            title: seg.title, problems: ps, mode: SessionMode.quiz, recordContext: 'checkpoint', askEffort: true);
-        if (res != null && res.length == seg.count) {
+            title: seg.title, problems: soalNomor(seg.soal), mode: SessionMode.quiz, recordContext: 'checkpoint', askEffort: true);
+        if (res != null && res.length == seg.soal.length) {
           final passed = res.where((a) => a.maxScore > 0 && a.score / a.maxScore >= 0.66).length;
           completed = passed >= seg.passMin;
           if (!completed && context.mounted) {
@@ -306,7 +297,7 @@ class ReadingToolsScreen extends StatefulWidget {
 }
 
 class _ReadingToolsScreenState extends State<ReadingToolsScreen> {
-  late final Problem _p = ProblemBank.generate('menyusul', level: 2, seed: 5);
+  late final Problem _p = soal(1);
   final Map<String, TagKind> _revealed = {};
 
   @override
@@ -342,8 +333,9 @@ class _ReadingToolsScreenState extends State<ReadingToolsScreen> {
           const SizedBox(height: 14),
           const FeedbackPanel(
             correct: true,
-            message: 'Perhatikan: "pukul 07.00" adalah JAM (ungu), bukan lama perjalanan. '
-                'Lama perjalanan (hijau) biasanya ditulis "30 menit" atau "2 jam".',
+            message: 'Perhatikan: "25 menit" adalah LAMA perjalanan (hijau). '
+                'Jarak (biru) ditulis km, kecepatan (oranye) ditulis km/jam. '
+                'Kalau ada "pukul 07.00", itu JAM (ungu), bukan lama perjalanan.',
           ),
         ],
       ),

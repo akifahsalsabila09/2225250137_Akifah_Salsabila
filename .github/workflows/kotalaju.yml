@@ -7,9 +7,9 @@
 # Sekali saja: Settings → Pages → Build and deployment → Source = "GitHub Actions".
 name: Build & Publikasi KotaLaju
 
+# Situs sekarang diterbitkan lewat Netlify (lihat netlify.toml).
+# Workflow ini hanya dijalankan manual (tab Actions → Run workflow), misalnya untuk membuat APK.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

@@ -22,14 +22,13 @@ class _Node {
 }
 
 const _terminal = _Node('terminal', '🚏', 'Terminal Awal', Offset(0.5, 70));
-const _balai = _Node('balai', '🏛️', 'Balai Kota', Offset(0.5, 1010));
+const _balai = _Node('balai', '🏛️', 'Balai Kota', Offset(0.68, 960));
 const _layout = <String, Offset>{
   'menara_jam': Offset(0.27, 210),
   'bundaran_jkw': Offset(0.73, 350),
   'bengkel_satuan': Offset(0.27, 490),
   'jalan_cerita': Offset(0.73, 630),
-  'simpang_berpapasan': Offset(0.25, 820),
-  'jalur_susul': Offset(0.75, 820),
+  'halte_transit': Offset(0.3, 800),
 };
 
 /// Peta Kota (Mode Kota): navigasi utama, meriah dan hidup.
@@ -282,10 +281,8 @@ class _MapPainter extends CustomPainter {
       _curve(n['menara_jam']!, n['bundaran_jkw']!),
       _curve(n['bundaran_jkw']!, n['bengkel_satuan']!),
       _curve(n['bengkel_satuan']!, n['jalan_cerita']!),
-      _curve(n['jalan_cerita']!, n['simpang_berpapasan']!),
-      _curve(n['jalan_cerita']!, n['jalur_susul']!),
-      _curve(n['simpang_berpapasan']!, n['balai']!),
-      _curve(n['jalur_susul']!, n['balai']!),
+      _curve(n['jalan_cerita']!, n['halte_transit']!),
+      _curve(n['halte_transit']!, n['balai']!),
     ];
     final road = Paint()
       ..color = const Color(0xFF5B5B5B)
@@ -308,7 +305,7 @@ class _MapPainter extends CustomPainter {
     }
     // kendaraan lalu-lalang (dekoratif, hanya di Mode Kota)
     final main = Path();
-    for (final i in [0, 1, 2, 3, 4, 6]) {
+    for (final i in [0, 1, 2, 3, 4, 5]) {
       main.addPath(segs[i], Offset.zero);
     }
     final metrics = main.computeMetrics().toList();
