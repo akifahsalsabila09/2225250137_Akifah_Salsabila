@@ -67,6 +67,14 @@ class AppState extends ChangeNotifier {
     _changed();
   }
 
+  /// Musik & efek suara menyala?
+  bool soundOn = true;
+
+  void setSoundOn(bool on) {
+    soundOn = on;
+    _changed();
+  }
+
   Future<void> load() async {
     _prefs = await SharedPreferences.getInstance();
     final raw = _prefs!.getString(_key);
@@ -329,6 +337,7 @@ class AppState extends ChangeNotifier {
         'teacherPinHash': teacherPinHash,
         'events': events,
         'riderSkin': riderSkin,
+        'soundOn': soundOn,
       };
 
   void _fromJson(Map<String, dynamic> j) {
@@ -355,6 +364,7 @@ class AppState extends ChangeNotifier {
     teacherPinHash = j['teacherPinHash'] as String?;
     events = [for (final e in ((j['events'] as List?) ?? [])) (e as Map).cast<String, dynamic>()];
     riderSkin = (j['riderSkin'] as num?)?.toInt() ?? 0;
+    soundOn = j['soundOn'] as bool? ?? true;
   }
 }
 

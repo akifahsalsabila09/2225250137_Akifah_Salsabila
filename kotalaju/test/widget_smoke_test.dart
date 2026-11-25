@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kotalaju/core/data/game_audio.dart';
 import 'package:kotalaju/app/theme.dart';
 import 'package:kotalaju/core/data/app_state.dart';
 import 'package:kotalaju/core/data/content.dart';
@@ -47,6 +48,7 @@ Widget _wrap(AppState s, Widget child) =>
 
 void main() {
   setUp(() {
+    GameAudio.disabled = true;
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
     binding.platformDispatcher.views.first.physicalSize = const Size(1080, 2340);
     binding.platformDispatcher.views.first.devicePixelRatio = 3;
@@ -90,6 +92,14 @@ void main() {
     expect(find.textContaining('Bagi dengan 60'), findsOneWidget);
     await t.tap(find.byTooltip('Tutup'));
     await _frames(t);
+    // Tombol suara: matikan lalu nyalakan lagi (pilihan tersimpan).
+    await t.tap(find.byTooltip('Matikan suara'));
+    await t.pump();
+    expect(s.soundOn, isFalse);
+    expect(find.text('🔇'), findsOneWidget);
+    await t.tap(find.byTooltip('Nyalakan suara'));
+    await t.pump();
+    expect(s.soundOn, isTrue);
     // Tombol Lompat berfungsi.
     await t.tap(find.text('LOMPAT ⬆'));
     await t.pump(const Duration(milliseconds: 50));

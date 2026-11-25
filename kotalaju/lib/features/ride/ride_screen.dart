@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../app/theme.dart';
 import '../../core/data/app_state.dart';
+import '../../core/data/game_audio.dart';
 import '../../core/domain/ride_world.dart';
 import '../../core/domain/soal_koin.dart';
 import '../../core/widgets/calculator_sheet.dart';
@@ -36,16 +37,22 @@ class _RideScreenState extends State<RideScreen> with SingleTickerProviderStateM
           if (_answers[i] == soalKoin[i].benar) i
       ].length;
 
+  final _audio = GameAudio.instance;
+
   @override
   void initState() {
     super.initState();
     _ticker.start();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _audio.setMuted(!AppScope.read(context).soundOn);
+    });
   }
 
   @override
   void dispose() {
     _ticker.dispose();
     _focus.dispose();
+    _audio.stopMusic();
     super.dispose();
   }
 
@@ -53,7 +60,19 @@ class _RideScreenState extends State<RideScreen> with SingleTickerProviderStateM
     final dt = ((now - _last).inMicroseconds / 1e6).clamp(0.0, 0.05);
     _last = now;
     if (_sheetOpen) return;
+    final hitsBefore = _world.hits;
+    final coinBefore = _world.activeCoin;
+    final finishedBefore = _world.finished;
     setState(() => _world.step(dt));
+    if (_world.hits > hitsBefore) _audio.play(Sfx.tabrak);
+    if (coinBefore == null && _world.activeCoin != null) {
+      _audio.pauseMusic();
+      _audio.play(Sfx.koin);
+    }
+    if (!finishedBefore && _world.finished) {
+      _audio.pauseMusic();
+      _audio.play(Sfx.finish);
+    }
   }
 
   void _start() {
@@ -61,28 +80,43 @@ class _RideScreenState extends State<RideScreen> with SingleTickerProviderStateM
       _started = true;
       _world.start();
     });
+    _audio.playMusic();
     _focus.requestFocus();
   }
 
   void _jump() {
-    if (_world.jump()) setState(() {});
+    if (_world.jump()) {
+      _audio.play(Sfx.lompat);
+      setState(() {});
+    }
   }
 
   void _answer(int coin, int choice) {
     if (_answers[coin] != null) return;
     setState(() => _answers[coin] = choice);
+    _audio.play(choice == soalKoin[coin].benar ? Sfx.benar : Sfx.salah);
   }
 
   void _continue() {
     setState(_world.continueRiding);
+    _audio.playMusic();
     _focus.requestFocus();
   }
 
-  void _restart() => setState(() {
-        _world.reset();
-        _answers.fillRange(0, _answers.length, null);
-        _started = false;
-      });
+  void _restart() {
+    _audio.stopMusic();
+    setState(() {
+      _world.reset();
+      _answers.fillRange(0, _answers.length, null);
+      _started = false;
+    });
+  }
+
+  void _toggleSound() {
+    final s = AppScope.read(context);
+    s.setSoundOn(!s.soundOn);
+    _audio.setMuted(!s.soundOn);
+  }
 
   void _askAiAboutCoin(SoalKoin q, bool answered) {
     final konteks = StringBuffer()
@@ -101,12 +135,14 @@ class _RideScreenState extends State<RideScreen> with SingleTickerProviderStateM
     );
   }
 
-  Future<void> _openSheet(Future<void> Function(BuildContext) show) async {
+  Future<void> _openSheet(Future<void> Function(BuildContext) show, {bool pauseMusic = false}) async {
     setState(() => _sheetOpen = true);
+    if (pauseMusic) _audio.pauseMusic();
     await show(context);
     if (!mounted) return;
     _last = Duration.zero;
     setState(() => _sheetOpen = false);
+    if (pauseMusic && _world.riding) _audio.playMusic();
     _focus.requestFocus();
   }
 
@@ -151,7 +187,10 @@ class _RideScreenState extends State<RideScreen> with SingleTickerProviderStateM
                         const SizedBox(height: 10),
                         _roundButton('❓', 'Tanya Jawab', () => _openSheet(TanyaSheet.show)),
                         const SizedBox(height: 10),
-                        _roundButton('🤖', 'Tanya AI', () => _openSheet((c) => AiChatScreen.open(c))),
+                        _roundButton('🤖', 'Tanya AI', () => _openSheet((c) => AiChatScreen.open(c), pauseMusic: true)),
+                        const SizedBox(height: 10),
+                        _roundButton(AppScope.of(context).soundOn ? '🔊' : '🔇',
+                            AppScope.of(context).soundOn ? 'Matikan suara' : 'Nyalakan suara', _toggleSound),
                       ]),
                     ),
                   ),
