@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
+import '../../features/ai/ai_chat_screen.dart';
 import '../data/ai_client.dart';
 import '../domain/tanya_jawab.dart';
 
-/// Tanya Jawab: ketik pertanyaan, muncul jawaban yang paling cocok.
-/// Bila belum puas, siswa bisa bertanya ke AI (Gemini lewat perantara Netlify).
+/// Tanya Jawab: ketik pertanyaan, muncul jawaban siap pakai yang paling cocok.
+/// Bila belum puas, siswa bisa mengobrol dengan Pak Lampu (AI).
 class TanyaSheet extends StatefulWidget {
   final AiClient? ai;
   const TanyaSheet({super.key, this.ai});
@@ -25,19 +26,9 @@ class TanyaSheet extends StatefulWidget {
   State<TanyaSheet> createState() => _TanyaSheetState();
 }
 
-class _AiTurn {
-  final String tanya;
-  String? jawab;
-  String? error;
-  _AiTurn(this.tanya);
-}
-
 class _TanyaSheetState extends State<TanyaSheet> {
   final _ctrl = TextEditingController();
-  late final AiClient _ai = widget.ai ?? AiClient();
   String _query = '';
-  final List<_AiTurn> _turns = [];
-  bool _loading = false;
 
   @override
   void dispose() {
@@ -45,22 +36,9 @@ class _TanyaSheetState extends State<TanyaSheet> {
     super.dispose();
   }
 
-  Future<void> _askAi() async {
-    final q = _query.trim();
-    if (q.isEmpty || _loading) return;
+  void _askAi() {
     FocusScope.of(context).unfocus();
-    final turn = _AiTurn(q);
-    setState(() {
-      _turns.insert(0, turn);
-      _loading = true;
-    });
-    try {
-      final a = await _ai.tanya(q);
-      turn.jawab = a;
-    } on AiException catch (e) {
-      turn.error = e.message;
-    }
-    if (mounted) setState(() => _loading = false);
+    AiChatScreen.open(context, ai: widget.ai, pertanyaanAwal: _query.trim().isEmpty ? null : _query.trim());
   }
 
   @override
@@ -102,29 +80,24 @@ class _TanyaSheetState extends State<TanyaSheet> {
               },
             ),
             const SizedBox(height: 8),
-            if (_query.trim().isNotEmpty)
-              SizedBox(
-                height: 48,
-                child: FilledButton.icon(
-                  onPressed: _loading ? null : _askAi,
-                  style: FilledButton.styleFrom(backgroundColor: AppColors.distance, foregroundColor: Colors.white),
-                  icon: _loading
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                      : const Text('🤖', style: TextStyle(fontSize: 18)),
-                  label: Text(_loading ? 'AI sedang berpikir…' : 'Tanya AI'),
-                ),
+            SizedBox(
+              height: 48,
+              child: FilledButton.icon(
+                onPressed: _askAi,
+                style: FilledButton.styleFrom(backgroundColor: AppColors.distance, foregroundColor: Colors.white),
+                icon: const Text('🤖', style: TextStyle(fontSize: 18)),
+                label: Text(_query.trim().isEmpty ? 'Ngobrol dengan Pak Lampu (AI)' : 'Tanya AI'),
               ),
+            ),
             const SizedBox(height: 8),
             Expanded(
               child: ListView(
                 children: [
-                  for (final t in _turns) _aiBubble(t),
-                  if (_turns.isNotEmpty) const Divider(height: 24),
                   if (results.isEmpty)
                     const Padding(
                       padding: EdgeInsets.all(12),
                       child: Text(
-                        'Belum ada jawaban siap untuk pertanyaan itu. Tekan "Tanya AI" atau coba kata lain, misalnya: rumus, menit, jam, km, rata-rata.',
+                        'Belum ada jawaban siap untuk pertanyaan itu. Tekan "Tanya AI" untuk bertanya ke Pak Lampu.',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 15),
                       ),
@@ -133,7 +106,7 @@ class _TanyaSheetState extends State<TanyaSheet> {
                     Card(
                       child: ExpansionTile(
                         key: ValueKey('${results[i].tanya}-$_query'),
-                        initiallyExpanded: _query.isNotEmpty && i == 0 && _turns.isEmpty,
+                        initiallyExpanded: _query.isNotEmpty && i == 0,
                         leading: const Icon(Icons.help, color: AppColors.distance),
                         title: Text(results[i].tanya, style: const TextStyle(fontWeight: FontWeight.w800)),
                         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
@@ -146,52 +119,6 @@ class _TanyaSheetState extends State<TanyaSheet> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _aiBubble(_AiTurn t) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              margin: const EdgeInsets.only(left: 40, bottom: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(color: const Color(0xFFDCEBFF), borderRadius: BorderRadius.circular(14)),
-              child: Text(t.tanya, style: const TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(right: 24),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: t.error != null ? AppColors.wrong : const Color(0xFFE0E0E0)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('🤖 Pak Lampu (AI)', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.distance)),
-                const SizedBox(height: 4),
-                if (t.jawab == null && t.error == null)
-                  const Text('Sedang berpikir…', style: TextStyle(fontStyle: FontStyle.italic))
-                else if (t.error != null)
-                  Text(t.error!, style: const TextStyle(color: AppColors.wrong, fontWeight: FontWeight.w700))
-                else ...[
-                  SelectableText(t.jawab!, style: const TextStyle(fontSize: 15, height: 1.5)),
-                  const SizedBox(height: 6),
-                  const Text('Jawaban AI bisa keliru. Cek lagi dengan rumus dan pembahasan, ya.',
-                      style: TextStyle(fontSize: 11, color: Colors.black54)),
-                ],
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

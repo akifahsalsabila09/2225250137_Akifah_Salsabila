@@ -14,7 +14,16 @@ class AiException implements Exception {
   String toString() => message;
 }
 
-/// Mengirim pertanyaan ke perantara Netlify (/api/tanya) yang memanggil Gemini.
+/// Satu pesan dalam percakapan. [fromUser] true = siswa, false = AI.
+class AiMessage {
+  final bool fromUser;
+  final String text;
+  const AiMessage(this.fromUser, this.text);
+
+  Map<String, String> toJson() => {'role': fromUser ? 'user' : 'model', 'text': text};
+}
+
+/// Mengirim percakapan ke perantara Netlify (/api/tanya) yang memanggil Gemini.
 /// API key tidak pernah ada di aplikasi.
 class AiClient {
   final http.Client _http;
@@ -24,14 +33,29 @@ class AiClient {
       : _http = client ?? http.Client(),
         endpoint = endpoint ?? (kIsWeb ? Uri.base.resolve('/api/tanya') : Uri.parse('$aiSiteUrl/api/tanya'));
 
-  Future<String> tanya(String pertanyaan) async {
-    final q = pertanyaan.trim();
-    if (q.isEmpty) throw AiException('Tulis pertanyaanmu dulu, ya.');
+  /// Satu pertanyaan tanpa riwayat.
+  Future<String> tanya(String pertanyaan) => chat([AiMessage(true, pertanyaan)]);
+
+  /// Percakapan lengkap. Pesan terakhir harus dari siswa.
+  Future<String> chat(List<AiMessage> messages, {String? konteks, bool sudahDijawab = false}) async {
+    final clean = [
+      for (final m in messages)
+        if (m.text.trim().isNotEmpty) AiMessage(m.fromUser, m.text.trim()),
+    ];
+    if (clean.isEmpty || !clean.last.fromUser) throw AiException('Tulis pertanyaanmu dulu, ya.');
     http.Response res;
     try {
       res = await _http
-          .post(endpoint, headers: {'content-type': 'application/json'}, body: jsonEncode({'pertanyaan': q}))
-          .timeout(const Duration(seconds: 30));
+          .post(
+            endpoint,
+            headers: {'content-type': 'application/json'},
+            body: jsonEncode({
+              'messages': [for (final m in clean.length > 16 ? clean.sublist(clean.length - 16) : clean) m.toJson()],
+              if (konteks != null && konteks.isNotEmpty) 'konteks': konteks,
+              'sudahDijawab': sudahDijawab,
+            }),
+          )
+          .timeout(const Duration(seconds: 45));
     } catch (_) {
       throw AiException('Tidak bisa terhubung ke AI. Periksa internetmu, lalu coba lagi.');
     }

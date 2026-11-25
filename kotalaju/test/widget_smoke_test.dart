@@ -102,6 +102,8 @@ void main() {
       final q = soalKoin[no - 1];
       // Pilih jawaban yang salah untuk koin genap, benar untuk koin ganjil.
       final pick = no.isOdd ? q.benar : (q.benar + 1) % q.pilihan.length;
+      await t.ensureVisible(find.text(q.pilihan[pick]));
+      await t.pump();
       await t.tap(find.text(q.pilihan[pick]));
       await t.pump();
       expect(find.text('Pembahasan'), findsOneWidget);

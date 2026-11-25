@@ -13,6 +13,7 @@ import '../../core/widgets/common.dart';
 import '../../core/widgets/paint_utils.dart';
 import '../../core/widgets/rider.dart';
 import '../../core/widgets/tanya_sheet.dart';
+import '../ai/ai_chat_screen.dart';
 
 /// Naik sepeda di jalan kota penuh rintangan. Setiap koin berisi satu soal (7 koin = 7 soal).
 class RideScreen extends StatefulWidget {
@@ -83,6 +84,23 @@ class _RideScreenState extends State<RideScreen> with SingleTickerProviderStateM
         _started = false;
       });
 
+  void _askAiAboutCoin(SoalKoin q, bool answered) {
+    final konteks = StringBuffer()
+      ..writeln(q.pertanyaan)
+      ..writeln('Pilihan: ${q.pilihan.join(' | ')}');
+    if (answered) {
+      konteks
+        ..writeln('Jawaban benar: ${q.jawaban}')
+        ..writeln('Pembahasan: ${q.pembahasan.join(' ')}');
+    }
+    AiChatScreen.open(
+      context,
+      konteks: konteks.toString(),
+      judulKonteks: 'Koin ${q.no} – ${q.judul}',
+      sudahDijawab: answered,
+    );
+  }
+
   Future<void> _openSheet(Future<void> Function(BuildContext) show) async {
     setState(() => _sheetOpen = true);
     await show(context);
@@ -132,6 +150,8 @@ class _RideScreenState extends State<RideScreen> with SingleTickerProviderStateM
                         _roundButton('🧮', 'Kalkulator', () => _openSheet(CalculatorSheet.show)),
                         const SizedBox(height: 10),
                         _roundButton('❓', 'Tanya Jawab', () => _openSheet(TanyaSheet.show)),
+                        const SizedBox(height: 10),
+                        _roundButton('🤖', 'Tanya AI', () => _openSheet((c) => AiChatScreen.open(c))),
                       ]),
                     ),
                   ),
@@ -372,7 +392,16 @@ class _RideScreenState extends State<RideScreen> with SingleTickerProviderStateM
             ]),
             const SizedBox(height: 8),
             Text(q.pertanyaan, style: const TextStyle(fontSize: 17, height: 1.5, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => _askAiAboutCoin(q, answered),
+                icon: const Text('🤖', style: TextStyle(fontSize: 18)),
+                label: Text(answered ? 'Tanya AI tentang pembahasan ini' : 'Bingung? Tanya AI tentang soal ini'),
+              ),
+            ),
+            const SizedBox(height: 4),
             for (var k = 0; k < q.pilihan.length; k++)
               OptionTile(
                 text: q.pilihan[k],
