@@ -35,6 +35,46 @@ const json = (status, body) =>
 
 const clip = (s, n) => String(s ?? '').trim().slice(0, n);
 
+const API = 'https://generativelanguage.googleapis.com/v1beta';
+
+// Model yang terakhir berhasil (bertahan selama fungsi masih "hangat").
+let cachedModel = null;
+
+async function callGemini(key, model, payload) {
+  const res = await fetch(`${API}/models/${encodeURIComponent(model)}:generateContent`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { res, data };
+}
+
+/** Mencari model Gemini "Flash" terbaru yang bisa generateContent untuk API key ini. */
+async function findFlashModel(key) {
+  try {
+    const res = await fetch(`${API}/models?pageSize=200`, { headers: { 'x-goog-api-key': key } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const skip = /(image|tts|audio|live|embedding|vision|thinking|exp|learnlm|robotics|computer)/i;
+    const version = (n) => parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || '0');
+    const usable = (data.models || [])
+      .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
+      .map((m) => String(m.name || '').replace(/^models\//, ''))
+      .filter((n) => n.startsWith('gemini') && n.includes('flash') && !skip.test(n));
+    usable.sort((a, b) => {
+      const score = (n) =>
+        version(n) * 10 - (n.includes('preview') ? 3 : 0) - (n.includes('lite') ? 2 : 0) + (n.endsWith('latest') ? 1 : 0);
+      return score(b) - score(a);
+    });
+    console.log('Model Flash tersedia:', usable.slice(0, 5).join(', '));
+    return usable[0] || null;
+  } catch (e) {
+    console.error('Gagal membaca daftar model', e);
+    return null;
+  }
+}
+
 export default async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'Gunakan POST.' });
 
@@ -69,25 +109,40 @@ export default async (req) => {
       : 'Siswa BELUM menjawab soal ini. Jangan sebutkan jawaban akhir atau pilihan yang benar. Bimbing dengan pertanyaan pancingan dan langkah awal saja.';
   }
 
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const payload = {
+    systemInstruction: { parts: [{ text: system }] },
+    contents: messages,
+    // Model terbaru "berpikir" dulu dan itu ikut memakai jatah token, jadi jatahnya dibuat longgar.
+    // Panjang jawaban tetap dijaga oleh instruksi di SYSTEM_PROMPT.
+    generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+  };
 
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: messages,
-        generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
+    // Coba model pilihan; bila tidak ada (404), cari otomatis model Flash yang tersedia.
+    const candidates = [...new Set([process.env.GEMINI_MODEL, cachedModel, 'gemini-flash-latest', 'gemini-2.5-flash'].filter(Boolean))];
+    let model = candidates[0];
+    let { res, data } = await callGemini(key, model, payload);
+    for (const next of candidates.slice(1)) {
+      if (res.status !== 404) break;
+      model = next;
+      ({ res, data } = await callGemini(key, model, payload));
+    }
+    if (res.status === 404) {
+      const found = await findFlashModel(key);
+      if (found) {
+        model = found;
+        ({ res, data } = await callGemini(key, model, payload));
+      }
+    }
+    if (res.ok) cachedModel = model;
     if (!res.ok) {
       console.error('Gemini error', res.status, JSON.stringify(data).slice(0, 800));
       if (res.status === 429) return json(429, { error: 'Kuota AI sedang habis. Coba lagi beberapa saat lagi, ya.' });
-      if (res.status === 400 || res.status === 403)
+      const detail = String(data?.error?.message ?? '');
+      if (res.status === 403 || /api key/i.test(detail))
         return json(502, { error: 'API key Gemini ditolak. Periksa GEMINI_API_KEY di Netlify.' });
+      if (res.status === 400)
+        return json(502, { error: `Permintaan ke AI ditolak (model ${model}). ${detail.slice(0, 160)}` });
       if (res.status === 404)
         return json(502, { error: `Model "${model}" tidak ditemukan. Atur GEMINI_MODEL di Netlify.` });
       return json(502, { error: 'AI sedang tidak bisa dihubungi. Coba lagi sebentar lagi.' });
