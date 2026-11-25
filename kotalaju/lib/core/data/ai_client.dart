@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 
 /// Alamat situs Netlify yang menjalankan fungsi Tanya AI (dipakai bila aplikasi
 /// berjalan di luar browser, misalnya APK Android).
-const aiSiteUrl = 'https://peaceful-daifuku-559ae4.netlify.app';
+const aiSiteUrl = 'https://kotalaju.netlify.app';
 
 class AiException implements Exception {
   final String message;
