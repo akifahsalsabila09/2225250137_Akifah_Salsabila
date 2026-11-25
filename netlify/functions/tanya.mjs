@@ -133,7 +133,8 @@ export default async (req) => {
 
   // Urutan percobaan: model paksa → model yang terakhir berhasil → daftar model Flash dari Google → cadangan.
   const tried = [];
-  const queue = [process.env.GEMINI_MODEL, cachedModel].filter(Boolean);
+  // gemini-3.6-flash: model yang terbukti berhasil untuk API key ini (Nov 2026).
+  const queue = [process.env.GEMINI_MODEL, cachedModel, 'gemini-3.6-flash'].filter(Boolean);
   let listed = false;
   let last = null;
   // Fungsi Netlify dihentikan sekitar 10 detik; sisakan ruang untuk membalas.
