@@ -5,6 +5,10 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../../app/theme.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../core/data/ai_client.dart' show aiSiteUrl;
 import '../../core/data/app_state.dart';
 import '../../core/data/game_audio.dart';
 import '../../core/domain/ride_world.dart';
@@ -110,6 +114,33 @@ class _RideScreenState extends State<RideScreen> with SingleTickerProviderStateM
       _answers.fillRange(0, _answers.length, null);
       _started = false;
     });
+  }
+
+  /// Tombol menuju halaman unduhan (APK Android & cara pasang di iPhone).
+  Widget _unduhButton() => SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: OutlinedButton.icon(
+          onPressed: _bukaUnduh,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.right,
+            side: const BorderSide(color: AppColors.right, width: 2),
+            backgroundColor: Colors.white,
+          ),
+          icon: const Text('📲', style: TextStyle(fontSize: 20)),
+          label: const Text('Unduh Aplikasi', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+        ),
+      );
+
+  Future<void> _bukaUnduh() async {
+    final url = kIsWeb ? Uri.base.resolve('/unduh') : Uri.parse('$aiSiteUrl/unduh');
+    try {
+      await launchUrl(url, webOnlyWindowName: '_self', mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Buka kotalaju.netlify.app/unduh untuk mengunduh aplikasi.')));
+    }
   }
 
   void _toggleSound() {
@@ -385,6 +416,8 @@ class _RideScreenState extends State<RideScreen> with SingleTickerProviderStateM
             const SizedBox(height: 14),
             SizedBox(
                 width: double.infinity, child: FilledButton(onPressed: _start, child: const Text('Mulai Gowes 🚲'))),
+            const SizedBox(height: 10),
+            _unduhButton(),
           ],
         ),
       ),
@@ -519,6 +552,8 @@ class _RideScreenState extends State<RideScreen> with SingleTickerProviderStateM
             const SizedBox(height: 16),
             SizedBox(
                 width: double.infinity, child: FilledButton(onPressed: _restart, child: const Text('Main lagi 🔁'))),
+            const SizedBox(height: 10),
+            _unduhButton(),
           ],
         ),
       ),

@@ -68,6 +68,7 @@ void main() {
     final s = await _state();
     await t.pumpWidget(_wrap(s, const RideScreen()));
     await t.pump();
+    expect(find.text('Unduh Aplikasi'), findsOneWidget);
     // Pilih karakter Nisa (berhijab).
     await t.tap(find.text('Nisa'));
     await t.pump();
