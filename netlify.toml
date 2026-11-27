@@ -8,3 +8,18 @@
 
 [functions]
   directory = "netlify/functions"
+
+# Unduh APK Android: selalu mengarah ke APK terbaru di GitHub Releases
+# (dibuat otomatis oleh .github/workflows/kotalaju.yml).
+[[redirects]]
+  from = "/kotalaju.apk"
+  to = "https://github.com/akifahsalsabila09/2225250137_Akifah_Salsabila/releases/latest/download/kotalaju.apk"
+  status = 302
+  force = true
+
+# Halaman unduhan / cara pasang di HP.
+[[redirects]]
+  from = "/unduh"
+  to = "/unduh.html"
+  status = 200
+  force = true

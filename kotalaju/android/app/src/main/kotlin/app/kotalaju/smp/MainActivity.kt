@@ -1,4 +1,4 @@
-package id.ac.untirta.kotalaju
+package app.kotalaju.smp
 
 import io.flutter.embedding.android.FlutterActivity
 

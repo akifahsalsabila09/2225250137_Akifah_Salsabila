@@ -1,28 +1,26 @@
-# Build & publikasi KotaLaju setiap ada push ke branch main.
-# Hasil:
-#   - Aplikasi web (bisa di-install di HP sebagai aplikasi/PWA):
-#       https://<user>.github.io/<repo>/
-#   - File APK Android:
-#       https://<user>.github.io/<repo>/kotalaju.apk
-# Sekali saja: Settings → Pages → Build and deployment → Source = "GitHub Actions".
-name: Build & Publikasi KotaLaju
+# Membuat APK Android KotaLaju secara otomatis setiap ada perubahan kode aplikasi.
+# APK diterbitkan di halaman Releases repo ini, lalu bisa diunduh dari
+#   https://kotalaju.netlify.app/kotalaju.apk   (dialihkan oleh netlify.toml)
+# Situs web tetap diterbitkan oleh Netlify (lihat netlify.toml).
+name: Build APK Android
 
-# Situs sekarang diterbitkan lewat Netlify (lihat netlify.toml).
-# Workflow ini hanya dijalankan manual (tab Actions → Run workflow), misalnya untuk membuat APK.
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'kotalaju/**'
+      - '.github/workflows/kotalaju.yml'
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
+  group: apk
   cancel-in-progress: true
 
 jobs:
-  build:
+  apk:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,7 +31,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - uses: subosito/flutter-action@v2
         with:
@@ -44,37 +42,23 @@ jobs:
       - name: Pasang dependensi
         run: flutter pub get
 
-      - name: Analyzer
-        run: dart analyze lib test
-
       - name: Test
         run: flutter test
-
-      - name: Build web
-        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
 
       - name: Build APK
         run: flutter build apk --release
 
-      - name: Taruh APK di situs web
-        run: cp build/app/outputs/flutter-apk/app-release.apk build/web/kotalaju.apk
+      - name: Beri nama file
+        run: cp build/app/outputs/flutter-apk/app-release.apk kotalaju.apk
 
-      - name: Simpan APK sebagai artifact
-        uses: actions/upload-artifact@v4
+      - name: Terbitkan di Releases
+        uses: softprops/action-gh-release@v2
         with:
-          name: kotalaju-apk
-          path: kotalaju/build/app/outputs/flutter-apk/app-release.apk
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: kotalaju/build/web
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          tag_name: apk-${{ github.run_number }}
+          name: KotaLaju Android (build ${{ github.run_number }})
+          make_latest: true
+          files: kotalaju/kotalaju.apk
+          body: |
+            APK KotaLaju untuk HP Android.
+            Unduh langsung: https://kotalaju.netlify.app/kotalaju.apk
+            Cara pasang: buka file APK → izinkan "Instal dari sumber tidak dikenal" → Instal.

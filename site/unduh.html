@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unduh KotaLaju</title>
+  <meta name="description" content="Pasang KotaLaju di HP Android atau iPhone.">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    :root { --biru:#2F80ED; --kuning:#F2C94C; --hijau:#27AE60; --tinta:#2D2D2D; --krem:#FFFBF2; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--tinta);
+           background: linear-gradient(#7CC8FB, #D7F0FF 55%, #9BD67A 55%); min-height:100vh; }
+    main { max-width: 560px; margin: 0 auto; padding: 24px 16px 40px; }
+    .kartu { background: var(--krem); border: 4px solid var(--kuning); border-radius: 24px; padding: 22px; margin-top: 16px;
+             box-shadow: 0 6px 18px rgba(0,0,0,.15); }
+    h1 { margin: 0; font-size: 34px; text-align:center; }
+    .sub { text-align:center; margin: 6px 0 0; font-size: 17px; }
+    h2 { margin: 0 0 10px; font-size: 21px; display:flex; gap:8px; align-items:center; }
+    .tombol { display:block; text-align:center; text-decoration:none; font-weight:800; font-size:18px; padding:16px; border-radius:16px;
+              margin: 12px 0 4px; }
+    .unduh { background: var(--hijau); color:#fff; }
+    .main { background: var(--kuning); color: var(--tinta); }
+    ol { padding-left: 22px; margin: 8px 0 0; line-height: 1.6; font-size: 16px; }
+    li { margin: 6px 0; }
+    .ikon { display:inline-block; border:2px solid #999; border-radius:6px; padding:0 6px; font-weight:800; background:#fff; }
+    .catatan { font-size: 13px; color:#555; margin-top: 10px; }
+    .sorot { outline: 4px solid var(--biru); }
+    .label { font-size: 12px; font-weight:800; background: var(--biru); color:#fff; padding: 2px 8px; border-radius: 999px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>🚲 KotaLaju</h1>
+  <p class="sub">Belajar jarak, kecepatan, dan waktu sambil gowes keliling kota!</p>
+
+  <section class="kartu" id="android">
+    <h2>🤖 HP Android <span class="label" id="lbl-android" hidden>HP kamu</span></h2>
+    <a class="tombol unduh" href="/kotalaju.apk">⬇️ Download APK</a>
+    <ol>
+      <li>Tekan <b>Download APK</b>, tunggu sampai selesai.</li>
+      <li>Buka file <b>kotalaju.apk</b> (dari notifikasi atau folder <i>Download</i>).</li>
+      <li>Kalau muncul peringatan, pilih <b>Setelan</b> → aktifkan <b>Izinkan dari sumber ini</b>.</li>
+      <li>Tekan <b>Instal</b>, lalu <b>Buka</b>. 🎉</li>
+    </ol>
+    <p class="catatan">Kalau memperbarui dan muncul "Aplikasi tidak terinstal", hapus dulu KotaLaju versi lama, lalu instal lagi.</p>
+  </section>
+
+  <section class="kartu" id="ios">
+    <h2>🍎 iPhone / iPad <span class="label" id="lbl-ios" hidden>HP kamu</span></h2>
+    <p style="margin:0">iPhone tidak bisa memasang file APK. Tapi KotaLaju tetap bisa dipasang di layar utama seperti aplikasi:</p>
+    <ol>
+      <li>Buka <b>kotalaju.netlify.app</b> di <b>Safari</b>.</li>
+      <li>Tekan tombol <b>Bagikan</b> <span class="ikon">⬆︎</span> di bawah layar.</li>
+      <li>Gulir, pilih <b>Tambah ke Layar Utama</b> (<i>Add to Home Screen</i>).</li>
+      <li>Tekan <b>Tambah</b>. Ikon KotaLaju muncul di layar HP-mu. 🎉</li>
+    </ol>
+    <a class="tombol main" href="/">▶️ Buka KotaLaju</a>
+  </section>
+
+  <section class="kartu">
+    <h2>💻 Laptop / komputer</h2>
+    <p style="margin:0">Langsung main di browser (Chrome disarankan).</p>
+    <a class="tombol main" href="/">▶️ Main sekarang</a>
+  </section>
+</main>
+<script>
+  // Sorot bagian yang sesuai dengan HP pengunjung.
+  var ua = navigator.userAgent || '';
+  var ios = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var android = /Android/i.test(ua);
+  if (ios) { document.getElementById('ios').classList.add('sorot'); document.getElementById('lbl-ios').hidden = false;
+             document.querySelector('main').insertBefore(document.getElementById('ios'), document.getElementById('android')); }
+  if (android) { document.getElementById('android').classList.add('sorot'); document.getElementById('lbl-android').hidden = false; }
+</script>
+</body>
+</html>
